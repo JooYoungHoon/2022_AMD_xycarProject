@@ -1,8 +1,6 @@
-#####################
+###################################
 # 2017430020 2017430039 신승철 주영훈
-# 6월 13일
-# 신호등 정보 완료, 차선 주행은 일단 됨, 장애물 해야함
-#############################################
+###################################
 
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
@@ -239,9 +237,9 @@ def divide_left_right(lines):
 		x1, y1, x2, y2 = Line
 
 		if (slope < 0) and (x2 < Width/2 - 10):
-		left_lines.append([Line.tolist()])
+			left_lines.append([Line.tolist()])
 		elif (slope > 0) and (x1 > Width/2 + 10):
-		right_lines.append([Line.tolist()])
+			right_lines.append([Line.tolist()])
 
 	return left_lines, right_lines
 
@@ -394,6 +392,7 @@ def start():
 		if ar_viewer_id == 0 and index == 0 and arData["DZ"] <= 0.5:
 			t = time.time()
 			current_time = time.time()-t
+			print("slow Drive")
 			while current_time <= 10:
 				lpos, rpos = process_image(image)
 				center = (lpos + rpos) / 2
@@ -402,31 +401,43 @@ def start():
 				drive(angle, speed)
 				current_time = time.time() - t
 				print(current_time)
+			print("finish slow drive")
 			index = 1
 			ar_viewer_id = -1
 
-		elif 
+		elif detectStopline() == True and index == 1:
+			print("stop line")
+			if leftColor == 'G':
+				print("green light")
+				index == 2
+			if leftColor == 'R' or leftColor == 'Y':
+				while leftColor != 'G':
+					print("red or yellow light")
+					drive(0, 0)
+			index == 2
 
-		elif ar_viewer_id == 2 and arData["DZ"] <= 0.5 and index == 1:
-			if 
-			if lpos == 0:
-				drive(-50, 4)
-
-			elif rpos == 640:
-				drive(50, 4)
-			else:
+		elif ar_viewer_id == 2 and index == 2:
+			while arData["DZ"] >= 0.1:
+				lpos, rpos = process_image(image)
 				center = (lpos + rpos) / 2
 				angle = PID(center, 0.38, 0.0005, 0.15)
-				speed = 4
+				speed = 5
 				drive(angle, speed)
-			
 
-		elif ar_viewer_id == 4 and arData["DZ"] <= 0.5 index:
-			
+			if leftColor == 'G' and timeCount > 3:
+				print("go left is fast")
+				drive(-30, 5)
+				time.sleep(2)
+			else:
+				print("go right is fast")
+				drive(30, 5)
+				time.sleep(2)
 
-		elif ar_viewer_id == 6:
+			index == 3
+
+		elif (ar_viewer_id == 4 and arData["DZ"] <= 0.5 and index == 3) or (ar_viewer_id == 6 and arData["DZ"] <= 0.5 and index == 3):
 			drive(0, 0)
-			#parking()
+			parking()
 
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):
