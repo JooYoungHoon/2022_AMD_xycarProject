@@ -446,7 +446,8 @@ def start():
 	while True:
 		while not image.size == (640*480*3):
 			continue
-		print("check"+str(check) "index"+str(index))
+		print("check"+str(check))
+		print("index"+str(index))
 		print("AR id: "+str(ar_viewer_id))
 		print("Roll: "+str(roll))
 		print("Pitch: "+str(pitch))
