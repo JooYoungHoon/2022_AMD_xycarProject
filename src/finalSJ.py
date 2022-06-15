@@ -110,14 +110,13 @@ def PID(input_data, kp, ki, kd):
 # 장애물 회피 구현
 def scan_obstacles():
 	global check, distance
-	# if check < 1:
 	okL = 0
 	okR = 0
-	for degree in range(120, 170):	        
-		if distance[degree] <= 0.4:
+	for degree in range(150, 190):	        
+		if distance[degree] <= 0.3:
 			okL += 1
 			print("lidar Lcalled")
-	for degree in range(190, 240):
+	for degree in range(190, 220):
 		if distance[degree] <=0.4:
 			okR += 1
 			print("lidar Rcalled")
@@ -125,19 +124,16 @@ def scan_obstacles():
 	if okL > 2:
 		check += 1
 		print("obstacles left")
-		drive(50, 5)
-		time.sleep(1)
-		drive(-30, 5)
-		time.sleep(0.5)
+		for i in range(3):
+			drive(50, 5)
+			time.sleep(0.1)
 		
 	elif okR > 2:
 		check += 1
 		print("obstacles right")
-		drive(-50, 3)
-		time.sleep(1.0)
-		drive(30, 5)
-		time.sleep(0.5)
-		drive(0, 4)
+		for i in range(3):
+			drive(-50, 3)
+			time.sleep(0.1)
 
 # 주차 함수
 def parking():
@@ -175,93 +171,6 @@ def drive(Angle, Speed):
 	msg.speed = Speed
 
 	pub.publish(msg)
-
-# 정지선 검출 부분
-def region_of_interest(img, vertices, color3=(255, 255, 255), color1=255):
-	mask = np.zeros_like(img)
-	if len(img.shape) > 2:
-		color = color3
-	else:
-		color = color1
-		cv2.fillPoly(mask, vertices, color)
-		ROI_image = cv2.bitwise_and(img, mask)
-	return ROI_image
-
-def detect_stopline(x):
-	frame = x.copy()
-	img = frame.copy()
-	min_stopline_length = 250
-	max_distance = 70
-
-	# gray
-	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-	# blur
-	kernel_size = 5
-	blur_frame = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
-
-	# roi
-	vertices = np.array([[
-		(80, frame.shape[0]),
-		(120, frame.shape[0] - 70),
-		(frame.shape[1] - 120, frame.shape[0] - 70),
-		(frame.shape[1] - 80, frame.shape[0])
-	]], dtype=np.int32)
-
-	roi = region_of_interest(blur_frame, vertices)
-
-	# filter
-	img_mask = cv2.inRange(roi, 160, 220)
-	img_result = cv2.bitwise_and(roi, roi, mask=img_mask)
-
-	# cv2.imshow('bin', img_result)
-
-	# binary
-	ret, dest = cv2.threshold(img_result, 160, 255, cv2.THRESH_BINARY)
-
-	# canny
-	low_threshold, high_threshold = 60, 70
-	edge_img = cv2.Canny(np.uint8(dest), low_threshold, high_threshold)
-
-	# find contours, opencv4
-	# contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-	# find contours, opencv3
-	_, contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-	if contours:
-		stopline_info = [0, 0, 0, 0]
-		for contour in contours:
-			epsilon = 0.01 * cv2.arcLength(contour, True)
-			approx = cv2.approxPolyDP(contour, epsilon, True)
-			# result = cv2.drawContours(frame, [approx], 0, (0,255,0), 4)
-			x, y, w, h = cv2.boundingRect(contour)
-			if stopline_info[2] < w:
-				stopline_info = [x, y, w, h]
-			# cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 3)
-			rect = cv2.minAreaRect(approx)
-			box = cv2.boxPoints(rect)
-			box = np.int0(box)
-			result = cv2.drawContours(frame, [box], 0, (0, 255, 0), 3)
-
-		cx, cy = stopline_info[0] + 0.5 * stopline_info[2], stopline_info[1] + 0.5 * stopline_info[3]
-		center = np.array([cx, cy])
-		stopline_length = stopline_info[2]
-		bot_point = np.array([frame.shape[1] // 2, frame.shape[0]])
-		distance = np.sqrt(np.sum(np.square(center - bot_point)))
-
-		# OUTPUT
-		print('length : {},  distance : {}'.format(stopline_length, distance))
-
-		if stopline_length > min_stopline_length and distance < max_distance:
-			cv2.imshow('stopline', result)
-			print('STOPLINE Detected')
-			return True
-
-	cv2.imshow('stopline', img)
-	# print('No STOPLINE.')
-	return False
-
 
 # draw lines
 def draw_lines(img, lines):
@@ -304,14 +213,14 @@ def divide_left_right(lines):
 	for line in lines:
 		x1, y1, x2, y2 = line[0]
 
-	if x2 - x1 == 0:
-		slope = 0
-	else:
-		slope = float(y2-y1) / float(x2-x1)
+		if x2 - x1 == 0:
+			slope = 0
+		else:
+			slope = float(y2-y1) / float(x2-x1)
 
-	if abs(slope) > low_slope_threshold and abs(slope) < high_slope_threshold:
-		slopes.append(slope)
-		new_lines.append(line[0])
+		if abs(slope) > low_slope_threshold and abs(slope) < high_slope_threshold:
+			slopes.append(slope)
+			new_lines.append(line[0])
 
 	# divide lines left to right
 	left_lines = []
@@ -477,7 +386,7 @@ def start():
 			print("Wow OB")
 			scan_obstacles()
 
-		if ar_viewer_id == 0 and index == 0 and arData["DZ"] <= 0.5:
+		if ar_viewer_id == 0 and arData["DZ"] <= 0.5:
 			t = time.time()
 			current_time = time.time()-t
 			print("slow Drive")
@@ -490,22 +399,21 @@ def start():
 				current_time = time.time() - t
 				print(current_time)
 			print("finish slow drive")
-			index = 1
 			ar_viewer_id = -1
 
-		elif detectStopline() == True and index == 1:
-			print("stop line")
-			if leftColor == 'G':
-				print("green light")
-				index == 2
-			if leftColor == 'R' or leftColor == 'Y':
-				while leftColor != 'G':
-					print("red or yellow light")
-					drive(0, 0)
-			index == 2
+		# elif detectStopline() == True and index == 0:
+		# 	print("stop line")
+		# 	if leftColor == 'G':
+		# 		print("green light")
+		# 		index = 1
+		# 	if leftColor == 'R' or leftColor == 'Y':
+		# 		while leftColor != 'G':
+		# 			print("red or yellow light")
+		# 			drive(0, 0)
+		# 		index == 1
 
-		elif ar_viewer_id == 2 and index == 2:
-			while arData["DZ"] >= 0.1:
+		elif ar_viewer_id == 2 and index == 0:
+			while arData["DZ"] >= 0.05 and ar_viewer_id == 2:
 				lpos, rpos = process_image(image)
 				center = (lpos + rpos) / 2
 				angle = PID(center, 0.38, 0.0005, 0.15)
@@ -513,17 +421,19 @@ def start():
 				drive(angle, speed)
 
 			if leftColor == 'G' and timeCount > 3:
-				print("go left is fast")
-				drive(-30, 5)
-				time.sleep(2)
+				for i in range(3):
+					print("go left is fast")
+					drive(-30, 5)
+					time.sleep(0.1)
+				index = 1
 			else:
-				print("go right is fast")
-				drive(30, 5)
-				time.sleep(2)
+				for i in range(3):
+					print("go right is fast")
+					drive(30, 5)
+					time.sleep(2)
+				index = 1
 
-			index == 3
-
-		elif (ar_viewer_id == 4 and arData["DZ"] <= 0.5 and index == 3) or (ar_viewer_id == 6 and arData["DZ"] <= 0.5 and index == 3):
+		elif (ar_viewer_id == 4 and arData["DZ"] <= 0.5 and index == 1) or (ar_viewer_id == 6 and arData["DZ"] <= 0.5 and index == 1):
 			drive(0, 0)
 			parking()
 
