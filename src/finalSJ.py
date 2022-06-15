@@ -1,7 +1,3 @@
-###################################
-# 2017430020 2017430039 신승철 주영훈
-###################################
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -112,29 +108,31 @@ def scan_obstacles():
 	global check, distance
 	okL = 0
 	okR = 0
-	for degree in range(150, 190):	        
-		if distance[degree] <= 0.3:
+	for degree in range(120, 160):	        
+		if distance[degree] <= 0.55:
 			okL += 1
 			print("lidar Lcalled")
-	for degree in range(190, 220):
-		if distance[degree] <=0.4:
+	for degree in range(240, 280):
+		if distance[degree] <=0.55:
 			okR += 1
 			print("lidar Rcalled")
 
 	if okL > 2:
 		check += 1
 		print("obstacles left")
-		for i in range(3):
+		for i in range(5):
 			drive(50, 5)
 			time.sleep(0.1)
+		print("right evade")
 		
 	elif okR > 2:
 		check += 1
 		print("obstacles right")
 		for i in range(3):
-			drive(-50, 3)
+			drive(-50, 5)
 			time.sleep(0.1)
-
+		print("left evade")
+		
 # 주차 함수
 def parking():
 	global pub, motor_msg
@@ -293,7 +291,7 @@ def process_image(frame):
 	global Width
 	global Offset, Gap
 
-# gray
+	# gray
 	gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
 
 	# blur
@@ -358,11 +356,7 @@ def start():
 		print("check"+str(check))
 		print("index"+str(index))
 		print("AR id: "+str(ar_viewer_id))
-		print("Roll: "+str(roll))
-		print("Pitch: "+str(pitch))
-		print("Yaw: "+str(yaw))
-		print(str(arData))
-		print("\n")
+		print(arData["DZ"])
 		print(str(leftColor)+str(rightColor)+str(timeCount))
 
 		lpos, rpos = process_image(image)
@@ -370,21 +364,25 @@ def start():
 		if lpos == 0:
 			angle = -50
 			speed = 4
+			drive(angle, speed)
 		elif rpos == 640:
 			angle = 50
 			speed = 4
+			drive(angle, speed)
 		else:
 			center = (lpos + rpos) / 2
 			angle = PID(center, 0.38, 0.0005, 0.15)
 			speed = 5
-
-		if ar_viewer_id not in range(0, 7):
-			print("just drive")
 			drive(angle, speed)
 
-		if check <2:
-			print("Wow OB")
-			scan_obstacles()
+		if ar_viewer_id not in range(0, 7):
+			
+			print("just go")
+
+			if check < 2 :
+				print("ob")
+				scan_obstacles()
+		
 
 		if ar_viewer_id == 0 and arData["DZ"] <= 0.5:
 			t = time.time()
@@ -412,8 +410,9 @@ def start():
 		# 			drive(0, 0)
 		# 		index == 1
 
-		elif ar_viewer_id == 2 and index == 0:
-			while arData["DZ"] >= 0.05 and ar_viewer_id == 2:
+		elif ar_viewer_id == 2 and index == 1:
+			print("tag 2")
+			while arData["DZ"] >= 0.5 and ar_viewer_id == 2:
 				lpos, rpos = process_image(image)
 				center = (lpos + rpos) / 2
 				angle = PID(center, 0.38, 0.0005, 0.15)
@@ -433,7 +432,8 @@ def start():
 					time.sleep(2)
 				index = 1
 
-		elif (ar_viewer_id == 4 and arData["DZ"] <= 0.5 and index == 1) or (ar_viewer_id == 6 and arData["DZ"] <= 0.5 and index == 1):
+		elif (ar_viewer_id == 4 and arData["DZ"] <= 0.8 and index == 1) or (ar_viewer_id == 6 and arData["DZ"] <= 0.8 and index == 1):
+			print("stop and parking")
 			drive(0, 0)
 			parking()
 
@@ -450,5 +450,3 @@ if __name__ == '__main__':
 	start_time = time.time()
 
 	start()
-
-
